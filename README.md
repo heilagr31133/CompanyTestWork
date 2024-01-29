@@ -1,5 +1,4 @@
 # Company Test Work
-Тествое задание
 ***
 ## Stack
 ### Backend
