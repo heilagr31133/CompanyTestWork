@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    {% load static %}
+    <title>Item Detail</title>
+    <script src="https://js.stripe.com/v3/"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+    var stripe = Stripe('{{ stripe_public_key }}');
+    var elements = stripe.elements();
+
+    // Create a Card Element
+    var cardElement = elements.create('card');
+
+    // Mount the Card Element to the DOM
+    cardElement.mount('#card-element');
+
+    var buyButton = document.getElementById('buy-button');
+    var itemId = {{ id }};
+
+    buyButton.addEventListener('click', function () {
+        // Collect card details using Stripe.js
+        stripe.createPaymentMethod({
+            type: 'card',
+            card: cardElement,
+        }).then(function (result) {
+            if (result.error) {
+                alert(result.error.message);
+            } else {
+                // If the payment method is collected successfully, proceed to confirm the PaymentIntent
+                var paymentMethodId = result.paymentMethod.id;
+
+                // Fetch the PaymentIntent client secret
+                fetch(`/buy/${itemId}`)
+                    .then(response => response.json())
+                    .then(intent => {
+                        return stripe.confirmCardPayment(intent.client_secret, {
+                            payment_method: paymentMethodId,
+                        });
+                    })
+                    .then(result => {
+                        if (result.error) {
+                            alert(result.error.message);
+                        } else {
+                            alert('Payment succeeded!');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+            }
+        });
+    });
+});
+
+    </script>
+    <style>
+    #card-element {
+        background-color: #CD853F;
+        width: 300px;
+        height: 200px;
+        padding: 20px; /* Добавьте отступы по вашему выбору */
+        border-radius: 10px; /* Закругленные углы */
+    }
+
+    /* Стили для внутренних элементов card-element */
+    #card-element input,
+    #card-element select {
+        color: white; /* Цвет текста */
+        background-color: #333; /* Цвет фона инпутов */
+        border: 1px solid #555; /* Обводка */
+        border-radius: 5px; /* Закругленные углы */
+        font-color: white;
+        padding: 10px; /* Отступы */
+        margin-bottom: 10px; /* Отступ снизу */
+    }
+
+    #card-element button {
+        background-color: #28a745; /* Цвет кнопки */
+        color: white; /* Цвет текста на кнопке */
+        padding: 10px 20px; /* Отступы кнопки */
+        border: none; /* Убираем границу */
+        border-radius: 5px; /* Закругленные углы */
+        cursor: pointer; /* Замена указателя мыши */
+    }
+
+    #card-errors {
+        color: #dc3545; /* Цвет текста ошибки */
+        margin-top: 10px; /* Отступ сверху */
+    }
+</style>
+</head>
+<body>
+    <div id="card-element"></div>
+    <h1>Item Detail</h1>
+    <p>Name: {{ name }}</p>
+    <p>Description: {{ description }}</p>
+    <p>Price: {{ price }}</p>
+    <button id="buy-button">Buy</button>
+</body>
+</html>
